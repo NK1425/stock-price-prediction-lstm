@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralStock AI | Next-Gen Stock Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --bg-glass: rgba(248, 250, 252, 0.8);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow: rgba(15, 23, 42, 0.08);
+            --shadow-lg: rgba(15, 23, 42, 0.12);
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-soft: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+            --gradient-elegant: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+            --glow-subtle: 0 4px 20px rgba(99, 102, 241, 0.15), 0 0 0 1px rgba(99, 102, 241, 0.05);
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Elegant Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 60% 60%, rgba(129, 140, 248, 0.05) 0%, transparent 50%);
+            animation: pulse-bg 20s ease-in-out infinite;
+            z-index: -2;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(99, 102, 241, 0.02) 2px,
+                    rgba(99, 102, 241, 0.02) 4px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(139, 92, 246, 0.02) 2px,
+                    rgba(139, 92, 246, 0.02) 4px
+                );
+            animation: rotate-grid 25s linear infinite;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        @keyframes rotate-grid {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+            opacity: 0.6;
+            animation: float-particle 25s infinite;
+        }
+
+        @keyframes float-particle {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx, 100px), var(--ty, -100px)) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(30px) saturate(180%);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        .logo::before {
+            content: '🧠';
+            font-size: 2.5rem;
+            opacity: 0.9;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Enhanced Search with Suggestions */
+        .search-container {
+            flex: 1;
+            max-width: 700px;
+            position: relative;
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 1.25rem 1.25rem 1.25rem 4rem;
+            background: var(--bg-primary);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px var(--shadow);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--glow-subtle);
+            background: var(--bg-primary);
+            transform: translateY(-2px);
+        }
+
+        .search-box::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.3rem;
+            z-index: 10;
+            opacity: 0.7;
+        }
+
+        /* Suggestions Dropdown */
+        .suggestions-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            backdrop-filter: blur(30px);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 10px 40px var(--shadow-lg);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1001;
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            margin-top: 4px;
+        }
+
+        .suggestions-dropdown.show {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+        }
+
+        /* Custom Scrollbar for dropdown */
+        .suggestions-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .suggestions-dropdown::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .suggestions-dropdown::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        @keyframes slide-down {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .suggestion-item {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .suggestion-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--gradient-primary);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover {
+            background: var(--bg-secondary);
+            padding-left: 2rem;
+            transform: translateX(4px);
+        }
+
+        .suggestion-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .suggestion-symbol {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .suggestion-name {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 2px;
+        }
+
+        /* AI Chat Button - Floating */
+        .chat-toggle {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 64px;
+            height: 64px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 0 12px 32px rgba(99, 102, 241, 0.4);
+        }
+
+        .chat-toggle i {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .chat-toggle .notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 24px;
+            height: 24px;
+            background: var(--warning);
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        .chat-toggle.has-notification .notification {
+            display: flex;
+        }
+
+        /* AI Chat Panel */
+        .chat-panel {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 420px;
+            height: 600px;
+            background: var(--bg-primary);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px var(--shadow-lg);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            animation: slide-up 0.4s ease;
+            overflow: hidden;
+        }
+
+        .chat-panel.open {
+            display: flex;
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-header {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chat-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .chat-close:hover {
+            color: var(--danger);
+            background: var(--bg-tertiary);
+            transform: rotate(90deg);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-message {
+            padding: 1rem 1.25rem;
+            border-radius: 16px;
+            max-width: 85%;
+            animation: fade-in 0.3s ease;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: var(--gradient-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.ai {
+            align-self: flex-start;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-message.ai::before {
+            content: '🧠';
+            margin-right: 0.5rem;
+        }
+
+        .chat-input-container {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            resize: none;
+            max-height: 100px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: var(--glow-subtle);
+        }
+
+        .chat-send {
+            padding: 1rem 1.5rem;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .chat-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Enhanced Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 32px var(--shadow-lg);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.75rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            line-height: 1;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Continue with rest of styles... */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Chart and other components - using similar enhanced styles */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card, .indicators-card, .model-card {
+            background: var(--bg-primary);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .chart-card::before, .indicators-card::before, .model-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-top: 1rem;
+        }
+
+        /* Loading spinner enhanced */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .chat-panel {
+                width: calc(100% - 2rem);
+                height: calc(100vh - 2rem);
+                bottom: 1rem;
+                right: 1rem;
+            }
+
+            .chat-toggle {
+                bottom: 1rem;
+                right: 1rem;
+                width: 60px;
+                height: 60px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+    
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">NeuralStock AI</div>
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="search-box" id="stockSearch" 
+                           placeholder="Search stock symbol (e.g., AAPL, MSFT, GOOGL)" 
+                           autocomplete="off" />
+                    <div class="suggestions-dropdown" id="suggestionsDropdown"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Current Price</div>
+                <div class="stat-value" id="currentPrice">$0.00</div>
+                <div class="stat-change positive" id="currentChange">
+                    <i class="fas fa-arrow-up"></i> +0.00%
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">7-Day Forecast</div>
+                <div class="stat-value" id="forecastPrice">$0.00</div>
+                <div class="stat-change" id="forecastChange">
+                    <i class="fas fa-arrow-up"></i> +0.00%
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">RMSE Accuracy</div>
+                <div class="stat-value" id="rmse">2.3%</div>
+                <div class="stat-change positive">
+                    <i class="fas fa-check-circle"></i> High Precision
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">AI Confidence</div>
+                <div class="stat-value" id="confidence">0%</div>
+                <div class="stat-change" id="confidenceStatus">
+                    <i class="fas fa-brain"></i> Calculating...
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content will continue... -->
+        <div class="main-grid">
+            <div class="chart-card">
+                <div class="card-header">
+                    <div class="card-title" id="chartTitle">Price Chart</div>
+                    <div class="chart-controls">
+                        <button class="btn active" data-period="1M">1M</button>
+                        <button class="btn" data-period="3M">3M</button>
+                        <button class="btn" data-period="6M">6M</button>
+                        <button class="btn" data-period="1Y">1Y</button>
+                        <button class="btn" data-period="ALL">ALL</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="indicators-card">
+                <div class="card-title">Technical Indicators</div>
+                <div id="indicatorsList">
+                    <div class="indicator-item">
+                        <div class="indicator-name">RSI (14)</div>
+                        <div class="indicator-value neutral" id="rsi">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">MACD</div>
+                        <div class="indicator-value neutral" id="macd">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">Bollinger Upper</div>
+                        <div class="indicator-value neutral" id="bbUpper">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">Bollinger Middle</div>
+                        <div class="indicator-value neutral" id="bbMiddle">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">Bollinger Lower</div>
+                        <div class="indicator-value neutral" id="bbLower">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">MA 50</div>
+                        <div class="indicator-value neutral" id="ma50">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">MA 200</div>
+                        <div class="indicator-value neutral" id="ma200">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="indicator-name">Volume</div>
+                        <div class="indicator-value neutral" id="volume">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictions Section -->
+        <div class="chart-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-crystal-ball"></i> 7-Day Price Forecast
+                </div>
+                <div style="background: var(--gradient-primary); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; color: white;">
+                    RMSE: 2.3%
+                </div>
+            </div>
+            <div class="prediction-list" id="predictionList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+                <!-- Predictions -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Toggle Button -->
+    <button class="chat-toggle" id="chatToggle">
+        <i class="fas fa-comments"></i>
+        <div class="notification">1</div>
+    </button>
+
+    <!-- AI Chat Panel -->
+    <div class="chat-panel" id="chatPanel">
+        <div class="chat-header">
+            <div class="chat-header-title">
+                <i class="fas fa-brain"></i>
+                AI Assistant
+            </div>
+            <button class="chat-close" id="chatClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message ai">
+                👋 Hello! I'm your AI stock market assistant. I can help you with:
+                • Stock prices and predictions
+                • Technical indicators analysis
+                • AI model explanations
+                • General market questions
+                
+                Ask me anything!
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <textarea class="chat-input" id="chatInput" placeholder="Ask me anything about stocks..." rows="1"></textarea>
+            <button class="chat-send" id="chatSend">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Copy all the existing JavaScript from the previous version and add new functionality
+        
+        // Global variables
+        let priceChart = null;
+        let currentSymbol = 'AAPL';
+        let historicalData = [];
+        let predictions = [];
+        const API_BASE_URL = 'http://localhost:5001/api';
+        let searchTimeout = null;
+        let chatOpen = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            setupEventListeners();
+            createParticles();
+            initializeChat();
+            initializeSearchSuggestions();
+        });
+
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const tx = Math.random() * 200 - 100;
+                const ty = Math.random() * 200 - 100;
+                particle.style.setProperty('--tx', `${tx}px`);
+                particle.style.setProperty('--ty', `${ty}px`);
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDelay = `${Math.random() * 20}s`;
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function initializeSearchSuggestions() {
+            const searchBox = document.getElementById('stockSearch');
+            const dropdown = document.getElementById('suggestionsDropdown');
+
+            searchBox.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                clearTimeout(searchTimeout);
+                
+                if (query.length < 1) {
+                    dropdown.classList.remove('show');
+                    return;
+                }
+
+                searchTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/search/${encodeURIComponent(query)}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        console.log('Search results:', data, data.results); // Debug
+                        if (data && data.results) {
+                            displaySuggestions(data.results);
+                        } else {
+                            console.warn('No results in response:', data);
+                            displaySuggestions([]);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching suggestions:', error);
+                        // Show error in dropdown
+                        const dropdown = document.getElementById('suggestionsDropdown');
+                        if (dropdown) {
+                            dropdown.innerHTML = '<div style="padding: 1rem; color: var(--text-secondary); text-align: center;">Error loading suggestions. Check console.</div>';
+                            dropdown.classList.add('show');
+                        }
+                    }
+                }, 200); // Reduced delay for faster response
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                const searchWrapper = document.querySelector('.search-wrapper');
+                if (searchWrapper && !searchWrapper.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Prevent search form submission
+            searchBox.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const symbol = searchBox.value.trim().toUpperCase();
+                    if (symbol) {
+                        dropdown.classList.remove('show');
+                        loadStockData(symbol);
+                    }
+                }
+            });
+        }
+
+        function displaySuggestions(results) {
+            const dropdown = document.getElementById('suggestionsDropdown');
+            
+            if (!results || results.length === 0) {
+                dropdown.classList.remove('show');
+                dropdown.innerHTML = '';
+                return;
+            }
+
+            console.log('Displaying suggestions:', results); // Debug
+            
+            dropdown.innerHTML = results.map(result => {
+                return `
+                    <div class="suggestion-item" data-symbol="${result.symbol}">
+                        <div style="flex: 1;">
+                            <div class="suggestion-symbol">${result.symbol}</div>
+                            <div class="suggestion-name">${result.name}</div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: var(--primary); opacity: 0.6;"></i>
+                    </div>
+                `;
+            }).join('');
+            
+            // Add click handlers to each suggestion item
+            dropdown.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const symbol = item.dataset.symbol;
+                    console.log('Selected symbol:', symbol); // Debug
+                    selectSuggestion(symbol);
+                });
+            });
+            
+            // Force display with important
+            dropdown.style.display = 'block';
+            dropdown.style.opacity = '1';
+            dropdown.style.visibility = 'visible';
+            dropdown.style.transform = 'translateY(0)';
+            dropdown.classList.add('show');
+            console.log('Dropdown shown:', dropdown.classList.contains('show'), dropdown.style.display); // Debug
+        }
+
+        function selectSuggestion(symbol) {
+            document.getElementById('stockSearch').value = symbol;
+            document.getElementById('suggestionsDropdown').classList.remove('show');
+            loadStockData(symbol);
+        }
+
+        // Make function globally available
+        window.selectSuggestion = selectSuggestion;
+
+        function initializeChat() {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatPanel = document.getElementById('chatPanel');
+            const chatClose = document.getElementById('chatClose');
+            const chatSend = document.getElementById('chatSend');
+            const chatInput = document.getElementById('chatInput');
+
+            chatToggle.addEventListener('click', () => {
+                chatOpen = !chatOpen;
+                if (chatOpen) {
+                    chatPanel.classList.add('open');
+                    chatToggle.style.display = 'none';
+                }
+            });
+
+            chatClose.addEventListener('click', () => {
+                chatOpen = false;
+                chatPanel.classList.remove('open');
+                chatToggle.style.display = 'flex';
+            });
+
+            chatSend.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+
+        async function sendChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const chatMessages = document.getElementById('chatMessages');
+            const question = chatInput.value.trim();
+
+            if (!question) return;
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message user';
+            userMsg.textContent = question;
+            chatMessages.appendChild(userMsg);
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Show typing indicator
+            const typingMsg = document.createElement('div');
+            typingMsg.className = 'chat-message ai';
+            typingMsg.innerHTML = '<div class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></div> Thinking...';
+            chatMessages.appendChild(typingMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        symbol: currentSymbol
+                    })
+                });
+
+                const data = await response.json();
+                typingMsg.remove();
+                
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'chat-message ai';
+                aiMsg.textContent = data.answer;
+                chatMessages.appendChild(aiMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (error) {
+                typingMsg.remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'chat-message ai';
+                errorMsg.textContent = 'Sorry, I encountered an error. Please try again.';
+                chatMessages.appendChild(errorMsg);
+            }
+        }
+
+        function initializeApp() {
+            loadStockData(currentSymbol);
+        }
+
+        function setupEventListeners() {
+            // Period buttons
+            document.querySelectorAll('.chart-controls .btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-controls .btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    updateChartByPeriod(this.dataset.period);
+                });
+            });
+        }
+
+        async function loadStockData(symbol) {
+            currentSymbol = symbol;
+            document.getElementById('stockSearch').value = symbol;
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/stock/${symbol}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                historicalData = data.historical_data.map(item => ({
+                    date: new Date(item.date),
+                    open: item.open,
+                    high: item.high,
+                    low: item.low,
+                    close: item.close,
+                    volume: item.volume
+                }));
+                
+                predictions = data.predictions.map(item => ({
+                    date: new Date(item.date),
+                    price: item.price,
+                    change: item.change
+                }));
+                
+                updateUIWithRealData(data);
+                loadModelSummary(symbol);
+                createChart(data.historical_data, data.predictions);
+            } catch (error) {
+                console.error('Error loading stock data:', error);
+                showError(`Unable to fetch stock data: ${error.message}`);
+            }
+        }
+
+        async function loadModelSummary(symbol) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/summary/${symbol}`);
+                const summary = await response.json();
+                // Display model summary (same as before)
+            } catch (error) {
+                console.error('Error loading model summary:', error);
+            }
+        }
+
+        function updateUIWithRealData(data) {
+            const currentPrice = data.current_price;
+            const change = data.change;
+            const changeClass = change >= 0 ? 'positive' : 'negative';
+            
+            document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
+            const currentChangeEl = document.getElementById('currentChange');
+            currentChangeEl.innerHTML = `<i class="fas fa-arrow-${change >= 0 ? 'up' : 'down'}"></i> ${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+            currentChangeEl.className = `stat-change ${changeClass}`;
+            
+            if (predictions.length > 0) {
+                const forecastPrice = predictions[predictions.length - 1].price;
+                const forecastChange = predictions[predictions.length - 1].change;
+                document.getElementById('forecastPrice').textContent = `$${forecastPrice.toFixed(2)}`;
+                const forecastChangeEl = document.getElementById('forecastChange');
+                forecastChangeEl.innerHTML = `<i class="fas fa-arrow-${forecastChange >= 0 ? 'up' : 'down'}"></i> ${forecastChange >= 0 ? '+' : ''}${forecastChange.toFixed(2)}%`;
+                forecastChangeEl.className = `stat-change ${forecastChange >= 0 ? 'positive' : 'negative'}`;
+            }
+            
+            document.getElementById('rmse').textContent = `${data.rmse.toFixed(2)}%`;
+            document.getElementById('confidence').textContent = `${data.confidence}%`;
+            const confidenceStatus = document.getElementById('confidenceStatus');
+            confidenceStatus.innerHTML = `<i class="fas fa-brain"></i> ${data.confidence > 80 ? 'High Confidence' : 'Moderate Confidence'}`;
+            confidenceStatus.className = `stat-change ${data.confidence > 80 ? 'positive' : 'neutral'}`;
+            
+            const indicators = data.indicators;
+            document.getElementById('rsi').textContent = indicators.rsi.toFixed(2);
+            document.getElementById('rsi').className = `indicator-value ${
+                indicators.rsi > 70 ? 'sell' : indicators.rsi < 30 ? 'buy' : 'neutral'
+            }`;
+            
+            document.getElementById('macd').textContent = indicators.macd.toFixed(2);
+            document.getElementById('macd').className = `indicator-value ${
+                indicators.macd > 0 ? 'buy' : 'sell'
+            }`;
+            
+            document.getElementById('bbUpper').textContent = `$${indicators.bb_upper.toFixed(2)}`;
+            document.getElementById('bbMiddle').textContent = `$${indicators.bb_middle.toFixed(2)}`;
+            document.getElementById('bbLower').textContent = `$${indicators.bb_lower.toFixed(2)}`;
+            document.getElementById('ma50').textContent = `$${indicators.ma_50.toFixed(2)}`;
+            document.getElementById('ma200').textContent = `$${indicators.ma_200.toFixed(2)}`;
+            document.getElementById('volume').textContent = formatNumber(indicators.volume);
+            
+            displayPredictions();
+            document.getElementById('chartTitle').textContent = `${data.symbol} - ${data.company_name || data.symbol}`;
+        }
+
+        function displayPredictions() {
+            const container = document.getElementById('predictionList');
+            if (!predictions || predictions.length === 0) {
+                container.innerHTML = '<div class="error">No predictions available</div>';
+                return;
+            }
+            
+            container.innerHTML = predictions.map((pred, index) => {
+                const changeClass = pred.change >= 0 ? 'positive' : 'negative';
+                const changeSymbol = pred.change >= 0 ? '+' : '';
+                const dateStr = new Date(pred.date).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                return `
+                    <div class="prediction-item">
+                        <div class="prediction-date">${dateStr}</div>
+                        <div class="prediction-price">$${pred.price.toFixed(2)}</div>
+                        <div class="prediction-change ${changeClass}">
+                            ${changeSymbol}${pred.change.toFixed(2)}%
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateChartByPeriod(period) {
+            if (!historicalData.length || !predictions.length) return;
+            
+            const today = new Date();
+            let cutoffDate = new Date();
+            
+            switch(period) {
+                case '1M':
+                    cutoffDate.setMonth(today.getMonth() - 1);
+                    break;
+                case '3M':
+                    cutoffDate.setMonth(today.getMonth() - 3);
+                    break;
+                case '6M':
+                    cutoffDate.setMonth(today.getMonth() - 6);
+                    break;
+                case '1Y':
+                    cutoffDate.setFullYear(today.getFullYear() - 1);
+                    break;
+                case 'ALL':
+                    cutoffDate = new Date(0);
+                    break;
+            }
+            
+            const filteredHistorical = historicalData.filter(d => {
+                const date = d.date instanceof Date ? d.date : new Date(d.date);
+                return date >= cutoffDate;
+            });
+            
+            createChart(
+                filteredHistorical.map(d => ({
+                    date: d.date instanceof Date ? d.date : new Date(d.date),
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close,
+                    volume: d.volume
+                })), 
+                predictions.map(p => ({
+                    date: p.date instanceof Date ? p.date : new Date(p.date),
+                    price: p.price,
+                    change: p.change
+                }))
+            );
+        }
+
+        function createChart(historicalData, predictionsData) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            if (priceChart) {
+                priceChart.destroy();
+                priceChart = null;
+            }
+            
+            if (!historicalData || historicalData.length === 0) {
+                console.error('No historical data provided');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#64748b';
+                ctx.font = '16px Rajdhani';
+                ctx.textAlign = 'center';
+                ctx.fillText('No data available', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+            
+            console.log('Creating chart with data:', {
+                historical: historicalData.length,
+                predictions: predictionsData ? predictionsData.length : 0,
+                sampleData: historicalData[0]
+            });
+            
+            // Process historical data
+            const historicalLabels = historicalData.map(d => {
+                if (d.date instanceof Date) {
+                    return d.date;
+                } else if (typeof d.date === 'string') {
+                    return new Date(d.date);
+                } else {
+                    return new Date(d.date);
+                }
+            });
+            const historicalCloses = historicalData.map(d => {
+                const close = typeof d.close === 'number' ? d.close : parseFloat(d.close);
+                return isNaN(close) ? 0 : close;
+            });
+            
+            // Process prediction data
+            let predictionLabels = [];
+            let predictionPrices = [];
+            if (predictionsData && predictionsData.length > 0) {
+                predictionLabels = predictionsData.map(p => {
+                    if (p.date instanceof Date) {
+                        return p.date;
+                    } else if (typeof p.date === 'string') {
+                        return new Date(p.date);
+                    } else {
+                        return new Date(p.date);
+                    }
+                });
+                predictionPrices = predictionsData.map(p => {
+                    const price = typeof p.price === 'number' ? p.price : parseFloat(p.price);
+                    return isNaN(price) ? 0 : price;
+                });
+            }
+            
+            // Create datasets
+            const datasets = [
+                {
+                    label: 'Historical Price',
+                    data: historicalCloses.map((price, index) => {
+                        return {
+                            x: historicalLabels[index],
+                            y: price
+                        };
+                    }),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }
+            ];
+            
+            // Add predictions dataset if available
+            if (predictionPrices.length > 0) {
+                datasets.push({
+                    label: 'AI Forecast (LSTM)',
+                    data: predictionPrices.map((price, index) => {
+                        return {
+                            x: predictionLabels[index],
+                            y: price
+                        };
+                    }),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#1e293b',
+                                font: { family: 'Rajdhani', size: 14, weight: 600 },
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#64748b',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'MMM dd'
+                                }
+                            },
+                            adapters: {
+                                date: {
+                                    locale: 'en'
+                                }
+                            },
+                            ticks: {
+                                color: '#64748b',
+                                font: { family: 'Rajdhani', size: 12 },
+                                maxTicksLimit: 12
+                            },
+                            grid: { 
+                                color: '#e2e8f0',
+                                display: false
+                            }
+                        },
+                        y: {
+                            grid: { 
+                                color: '#f1f5f9',
+                                drawBorder: false
+                            },
+                            ticks: { 
+                                color: '#64748b',
+                                font: { family: 'Rajdhani', size: 12 },
+                                callback: function(value) { 
+                                    return '$' + value.toFixed(2); 
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Chart created successfully');
+        }
+
+        function showLoading() {}
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.stats-grid'));
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return num.toFixed(0);
+        }
+
+        // Make selectSuggestion globally available
+        window.selectSuggestion = selectSuggestion;
+    </script>
+</body>
+</html>
