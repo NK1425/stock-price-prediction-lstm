@@ -592,7 +592,10 @@ The model learns complex temporal patterns in stock prices and uses attention to
 
 if __name__ == '__main__':
     os.makedirs('models', exist_ok=True)
-    port = 5001  # Changed from 5000 to avoid conflict with AirPlay
+    # Use PORT from environment variable (for deployment) or default to 5001
+    port = int(os.environ.get('PORT', 5001))
     print("Starting Stock Prediction API Server...")
-    print(f"Server running on http://localhost:{port}")
-    app.run(debug=True, host='0.0.0.0', port=port)
+    print(f"Server running on http://0.0.0.0:{port}")
+    # In production, don't use debug mode
+    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
