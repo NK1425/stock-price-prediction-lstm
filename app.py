@@ -4,24 +4,21 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from sklearn.neural_network import MLPRegressor
 from datetime import datetime, timedelta
 import warnings
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow warnings
 warnings.filterwarnings('ignore')
 
-@st.cache_data(ttl=300)  # Cache data for 5 minutes
+@st.cache_data(ttl=300)
 def fetch_stock_data(ticker, start, end):
-    """Fetch stock data with caching to speed up repeated requests."""
+    """Fetch stock data with caching."""
     data = yf.download(ticker, start=start, end=end, progress=False)
     return data
 
 st.set_page_config(page_title="Stock Price Prediction", page_icon="📈", layout="wide")
 
-st.title("📈 Stock Price Prediction using LSTM")
-st.markdown("### Predict future stock prices using Long Short-Term Memory neural networks")
+st.title("📈 Stock Price Prediction using Neural Networks")
+st.markdown("### Predict future stock prices using Machine Learning")
 
 st.sidebar.header("Configuration")
 ticker = st.sidebar.text_input("Stock Ticker Symbol", value="AAPL")
@@ -31,9 +28,15 @@ prediction_days = st.sidebar.slider("Days to use for prediction", min_value=30, 
 future_days = st.sidebar.slider("Days to predict into future", min_value=1, max_value=30, value=7)
 
 st.sidebar.subheader("Model Parameters")
-epochs = st.sidebar.slider("Training Epochs", min_value=10, max_value=100, value=25)
-batch_size = st.sidebar.slider("Batch Size", min_value=16, max_value=64, value=32)
-use_simple_model = st.sidebar.checkbox("Use faster (simpler) model", value=True, help="Faster training, slightly less accurate")
+hidden_layers = st.sidebar.selectbox("Model Complexity", ["Simple (Fast)", "Medium", "Complex (Slower)"], index=0)
+max_iter = st.sidebar.slider("Training Iterations", min_value=100, max_value=1000, value=300)
+
+# Map complexity to hidden layer sizes
+layer_config = {
+    "Simple (Fast)": (50,),
+    "Medium": (100, 50),
+    "Complex (Slower)": (100, 100, 50)
+}
 
 if st.sidebar.button("Train Model & Predict"):
     try:
@@ -63,7 +66,7 @@ if st.sidebar.button("Train Model & Predict"):
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
             
-            st.subheader("Training LSTM Model")
+            st.subheader("Training Neural Network Model")
             progress_bar = st.progress(0)
             status_text = st.empty()
             
@@ -74,6 +77,7 @@ if st.sidebar.button("Train Model & Predict"):
             scaler = MinMaxScaler(feature_range=(0, 1))
             scaled_data = scaler.fit_transform(close_prices)
             
+            # Create sequences for training
             x_train, y_train = [], []
             for i in range(prediction_days, len(scaled_data)):
                 x_train.append(scaled_data[i-prediction_days:i, 0])
@@ -81,45 +85,36 @@ if st.sidebar.button("Train Model & Predict"):
             
             x_train = np.array(x_train)
             y_train = np.array(y_train)
-            x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
             
             progress_bar.progress(20)
             
-            if use_simple_model:
-                # Faster model for quick predictions
-                model = Sequential([
-                    LSTM(units=32, input_shape=(x_train.shape[1], 1)),
-                    Dropout(0.2),
-                    Dense(units=1)
-                ])
-            else:
-                # Full model for more accurate predictions
-                model = Sequential([
-                    LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
-                    Dropout(0.2),
-                    LSTM(units=50, return_sequences=True),
-                    Dropout(0.2),
-                    LSTM(units=50),
-                    Dropout(0.2),
-                    Dense(units=1)
-                ])
-            
-            model.compile(optimizer='adam', loss='mean_squared_error')
-            
-            status_text.text(f"Training model...")
+            status_text.text("Training model...")
             progress_bar.progress(30)
             
-            history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, verbose=0, validation_split=0.1)
+            # Use MLPRegressor (Neural Network)
+            model = MLPRegressor(
+                hidden_layer_sizes=layer_config[hidden_layers],
+                activation='relu',
+                solver='adam',
+                max_iter=max_iter,
+                random_state=42,
+                early_stopping=True,
+                validation_fraction=0.1
+            )
+            
+            model.fit(x_train, y_train)
             
             progress_bar.progress(70)
+            status_text.text("Making predictions...")
             
+            # Make future predictions
             predictions = []
-            current_batch = scaled_data[-prediction_days:].copy()
+            current_batch = scaled_data[-prediction_days:, 0].copy()
             
             for i in range(future_days):
-                pred = model.predict(current_batch.reshape(1, prediction_days, 1), verbose=0)[0, 0]
+                pred = model.predict(current_batch.reshape(1, -1))[0]
                 predictions.append(pred)
-                current_batch = np.append(current_batch[1:], [[pred]], axis=0)
+                current_batch = np.append(current_batch[1:], pred)
             
             predictions = scaler.inverse_transform(np.array(predictions).reshape(-1, 1))
             
@@ -159,10 +154,11 @@ else:
     st.markdown("""
     ### Features:
     - Real-time stock data from Yahoo Finance
-    - LSTM neural network predictions
+    - Neural network predictions (MLPRegressor)
     - Interactive visualizations
     - Customizable parameters
+    - Fast training and predictions
     """)
 
 st.markdown("---")
-st.markdown("Built with Streamlit • Powered by TensorFlow")
+st.markdown("Built with Streamlit • Powered by scikit-learn")
