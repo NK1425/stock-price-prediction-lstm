@@ -4,12 +4,19 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-import keras
-from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 from datetime import datetime, timedelta
 import warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow warnings
 warnings.filterwarnings('ignore')
+
+@st.cache_data(ttl=300)  # Cache data for 5 minutes
+def fetch_stock_data(ticker, start, end):
+    """Fetch stock data with caching to speed up repeated requests."""
+    data = yf.download(ticker, start=start, end=end, progress=False)
+    return data
 
 st.set_page_config(page_title="Stock Price Prediction", page_icon="📈", layout="wide")
 
@@ -24,13 +31,14 @@ prediction_days = st.sidebar.slider("Days to use for prediction", min_value=30, 
 future_days = st.sidebar.slider("Days to predict into future", min_value=1, max_value=30, value=7)
 
 st.sidebar.subheader("Model Parameters")
-epochs = st.sidebar.slider("Training Epochs", min_value=10, max_value=100, value=50)
+epochs = st.sidebar.slider("Training Epochs", min_value=10, max_value=100, value=25)
 batch_size = st.sidebar.slider("Batch Size", min_value=16, max_value=64, value=32)
+use_simple_model = st.sidebar.checkbox("Use faster (simpler) model", value=True, help="Faster training, slightly less accurate")
 
 if st.sidebar.button("Train Model & Predict"):
     try:
         with st.spinner(f"Downloading {ticker} data..."):
-            data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            data = fetch_stock_data(ticker, start_date, end_date)
         
         if data.empty:
             st.error(f"No data found for ticker '{ticker}'.")
@@ -77,15 +85,24 @@ if st.sidebar.button("Train Model & Predict"):
             
             progress_bar.progress(20)
             
-            model = Sequential([
-                LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
-                Dropout(0.2),
-                LSTM(units=50, return_sequences=True),
-                Dropout(0.2),
-                LSTM(units=50),
-                Dropout(0.2),
-                Dense(units=1)
-            ])
+            if use_simple_model:
+                # Faster model for quick predictions
+                model = Sequential([
+                    LSTM(units=32, input_shape=(x_train.shape[1], 1)),
+                    Dropout(0.2),
+                    Dense(units=1)
+                ])
+            else:
+                # Full model for more accurate predictions
+                model = Sequential([
+                    LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)),
+                    Dropout(0.2),
+                    LSTM(units=50, return_sequences=True),
+                    Dropout(0.2),
+                    LSTM(units=50),
+                    Dropout(0.2),
+                    Dense(units=1)
+                ])
             
             model.compile(optimizer='adam', loss='mean_squared_error')
             
@@ -148,4 +165,4 @@ else:
     """)
 
 st.markdown("---")
-st.markdown("Built with Streamlit • Powered by Keras 3")
+st.markdown("Built with Streamlit • Powered by TensorFlow")
