@@ -106,16 +106,13 @@ class StockDataLoader:
         # Download from Yahoo Finance
         logger.info(f"Downloading {ticker} data from {start} to {end}")
         try:
-            # Use yf.download() which is more reliable than Ticker.history()
-            data = yf.download(
-                ticker,
-                start=start,
-                end=end,
-                interval=interval,
-                progress=False,
-                auto_adjust=True,
-                actions=False
-            )
+            # Use Ticker.history() for reliable data fetching
+            stock = yf.Ticker(ticker)
+            data = stock.history(start=start, end=end, interval=interval)
+
+            # Remove timezone from index for easier handling
+            if data.index.tz is not None:
+                data.index = data.index.tz_localize(None)
 
             if data.empty:
                 raise ValueError(f"No data available for ticker '{ticker}'")
