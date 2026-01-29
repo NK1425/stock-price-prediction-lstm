@@ -1,6 +1,12 @@
 # Stock Price Prediction with LSTM and Attention Mechanism
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://stock-price-prediction-lstm.streamlit.app)
+
 A production-quality deep learning pipeline for predicting stock prices using LSTM networks with attention mechanisms. This project implements an end-to-end machine learning workflow for multi-step time-series forecasting.
+
+## Live Demo
+
+**Try the app:** [https://stock-price-prediction-lstm.streamlit.app](https://stock-price-prediction-lstm.streamlit.app)
 
 ## Features
 
@@ -15,6 +21,8 @@ A production-quality deep learning pipeline for predicting stock prices using LS
 
 ```
 stock-price-prediction-lstm/
+├── app.py                     # Streamlit web interface
+├── main.py                    # CLI entry point
 ├── data/                      # Cached stock data
 ├── models/                    # Saved trained models
 ├── notebooks/                 # Jupyter notebooks for exploration
@@ -62,7 +70,29 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Training a Model
+### Web Interface (Recommended)
+
+Run the Streamlit app locally:
+```bash
+streamlit run app.py
+```
+
+Or visit the live demo: [https://stock-price-prediction-lstm.streamlit.app](https://stock-price-prediction-lstm.streamlit.app)
+
+### Command Line
+
+```bash
+# Train a model
+python main.py --ticker AAPL --train --epochs 100
+
+# Make predictions
+python main.py --ticker AAPL --predict
+
+# Evaluate model
+python main.py --ticker AAPL --evaluate
+```
+
+### Training a Model (Python API)
 
 ```python
 from src.train import train_single_stock
