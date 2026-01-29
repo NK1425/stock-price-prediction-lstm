@@ -1,21 +1,51 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-venv/
-env/
-ENV/
-.venv
 
-# Model files
-models/*.h5
-models/*.pkl
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
 
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
@@ -26,7 +56,33 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Environment variables
 .env
 .env.local
+
+# Project specific - Data and Models (large files)
+data/*.csv
+models/*.keras
+models/*.h5
+models/*.pkl
+models/*.json
+!models/.gitkeep
+
+# Results (generated files)
+results/figures/*.png
+results/metrics/*.json
+!results/figures/.gitkeep
+!results/metrics/.gitkeep
+
+# TensorFlow
+*.pb
+checkpoint
+*.ckpt*
+events.out.tfevents.*
+
+# Secrets
+*.pem
+*.key
+credentials.json
