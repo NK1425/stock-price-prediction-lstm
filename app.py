@@ -1124,6 +1124,82 @@ def main():
     stock_info = STOCK_DATABASE.get(ticker, {"name": ticker, "sector": "Unknown", "industry": "Unknown"})
     realtime_data = get_realtime_price(ticker)
 
+    # Auto-generate prediction for selected stock
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def get_stock_prediction(ticker: str, forecast_days: int = 7):
+        """Get cached prediction for a stock."""
+        try:
+            import tensorflow as tf
+            tf.random.set_seed(42)
+            np.random.seed(42)
+
+            from feature_engineering import FeatureEngineer
+            from sequence_builder import SequenceBuilder, create_train_val_test_sequences, create_single_prediction_sequence
+            from model import build_attention_model_with_weights
+
+            # Load 3 years of data
+            train_data = load_stock_data(ticker, 1095)
+            if train_data.empty or len(train_data) < 200:
+                return None
+
+            engineer = FeatureEngineer()
+            data_with_features = engineer.add_all_features(train_data.copy())
+            data_clean = engineer.handle_missing_values(data_with_features, method='ffill')
+
+            feature_cols = get_feature_columns()
+            feature_cols = [c for c in feature_cols if c in data_clean.columns]
+
+            seq_length = 60
+            builder = SequenceBuilder(
+                sequence_length=seq_length,
+                forecast_horizon=forecast_days,
+                feature_columns=feature_cols,
+                target_column='Close'
+            )
+
+            (X_train, y_train), (X_val, y_val), _, _ = \
+                create_train_val_test_sequences(data_clean, builder, 0.7, 0.15, 0.15)
+
+            n_features = X_train.shape[2]
+            model, attention_model = build_attention_model_with_weights(
+                input_shape=(seq_length, n_features),
+                output_steps=forecast_days,
+                lstm_units=[64, 32],
+                attention_units=32,
+                dropout_rate=0.2,
+                learning_rate=0.001
+            )
+
+            early_stop = tf.keras.callbacks.EarlyStopping(
+                monitor='val_loss', patience=8, restore_best_weights=True
+            )
+
+            model.fit(
+                X_train, y_train,
+                validation_data=(X_val, y_val),
+                epochs=30,
+                batch_size=32,
+                callbacks=[early_stop],
+                verbose=0
+            )
+
+            latest_sequence = create_single_prediction_sequence(data_clean, builder)
+            future_pred, attention = attention_model.predict(latest_sequence, verbose=0)
+            future_prices = builder.inverse_transform_predictions(future_pred)[0]
+
+            last_price = data_clean['Close'].iloc[-1]
+            last_date = data_clean.index[-1]
+
+            return {
+                'prices': future_prices,
+                'last_price': last_price,
+                'last_date': last_date,
+                'attention': attention,
+                'forecast_days': forecast_days
+            }
+        except Exception as e:
+            return None
+
     if realtime_data:
         # Stock Header Card
         col1, col2 = st.columns([2, 1])
@@ -1157,6 +1233,176 @@ def main():
                 st.metric("Volume", format_number(realtime_data['volume']))
                 st.metric("52W High", f"${realtime_data['52w_high']:.2f}")
                 st.metric("52W Low", f"${realtime_data['52w_low']:.2f}")
+
+    # ==================== PREDICTION SECTION ====================
+    st.markdown("---")
+    st.markdown("## 🔮 AI Price Prediction")
+
+    with st.spinner(f"🧠 Generating AI prediction for {ticker}..."):
+        prediction = get_stock_prediction(ticker, forecast_horizon)
+
+    if prediction:
+        last_price = prediction['last_price']
+        future_prices = prediction['prices']
+        tomorrow_price = future_prices[0]
+        week_price = future_prices[-1]
+
+        tomorrow_change = (tomorrow_price - last_price) / last_price * 100
+        week_change = (week_price - last_price) / last_price * 100
+
+        # Determine trend
+        if week_change > 2:
+            trend_color = "#10b981"
+            trend_bg = "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+            trend_text = "BULLISH"
+            trend_icon = "📈"
+        elif week_change < -2:
+            trend_color = "#ef4444"
+            trend_bg = "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+            trend_text = "BEARISH"
+            trend_icon = "📉"
+        else:
+            trend_color = "#f59e0b"
+            trend_bg = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+            trend_text = "NEUTRAL"
+            trend_icon = "➡️"
+
+        # Main prediction cards
+        pred_cols = st.columns([1, 1, 1, 1])
+
+        with pred_cols[0]:
+            st.markdown(f"""
+            <div style="background: {trend_bg}; border-radius: 16px; padding: 1.5rem; color: white; text-align: center;">
+                <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 0.5rem;">AI SIGNAL</div>
+                <div style="font-size: 2rem; margin-bottom: 0.25rem;">{trend_icon}</div>
+                <div style="font-size: 1.25rem; font-weight: 700;">{trend_text}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with pred_cols[1]:
+            tomorrow_icon = "▲" if tomorrow_change >= 0 else "▼"
+            tomorrow_color = "#10b981" if tomorrow_change >= 0 else "#ef4444"
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 1.5rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.5rem;">TOMORROW'S PRICE</div>
+                <div style="font-size: 1.75rem; font-weight: 700;">${tomorrow_price:.2f}</div>
+                <div style="color: {tomorrow_color}; font-size: 0.9rem; margin-top: 0.5rem;">
+                    {tomorrow_icon} {tomorrow_change:+.2f}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with pred_cols[2]:
+            week_icon = "▲" if week_change >= 0 else "▼"
+            week_color = "#10b981" if week_change >= 0 else "#ef4444"
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 1.5rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 0.5rem;">{forecast_horizon}-DAY FORECAST</div>
+                <div style="font-size: 1.75rem; font-weight: 700;">${week_price:.2f}</div>
+                <div style="color: {week_color}; font-size: 0.9rem; margin-top: 0.5rem;">
+                    {week_icon} {week_change:+.2f}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with pred_cols[3]:
+            avg_price = np.mean(future_prices)
+            avg_change = (avg_price - last_price) / last_price * 100
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; padding: 1.5rem; color: white;">
+                <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 0.5rem;">AVG PREDICTED</div>
+                <div style="font-size: 1.75rem; font-weight: 700;">${avg_price:.2f}</div>
+                <div style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.9;">
+                    {avg_change:+.2f}% expected
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Detailed daily predictions
+        st.markdown("##### 📅 Daily Price Forecast")
+
+        forecast_dates = pd.date_range(
+            start=prediction['last_date'] + timedelta(days=1),
+            periods=forecast_horizon,
+            freq='B'
+        )
+
+        # Create forecast table with styling
+        forecast_data = []
+        for i, (date, price) in enumerate(zip(forecast_dates, future_prices)):
+            change = (price - last_price) / last_price * 100
+            day_label = "Tomorrow" if i == 0 else date.strftime('%a, %b %d')
+            forecast_data.append({
+                "Day": day_label,
+                "Date": date.strftime('%Y-%m-%d'),
+                "Predicted Price": f"${price:.2f}",
+                "Change from Today": f"{change:+.2f}%",
+                "Direction": "🟢 Up" if change > 0 else "🔴 Down" if change < 0 else "🟡 Flat"
+            })
+
+        forecast_df = pd.DataFrame(forecast_data)
+        st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+
+        # Mini prediction chart
+        st.markdown("##### 📊 Forecast Visualization")
+
+        hist_data = load_stock_data(ticker, 60)
+        if not hist_data.empty:
+            fig = go.Figure()
+
+            # Historical
+            fig.add_trace(go.Scatter(
+                x=hist_data.index,
+                y=hist_data['Close'],
+                mode='lines',
+                name='Historical',
+                line=dict(color='#64748b', width=2)
+            ))
+
+            # Prediction line
+            all_dates = [hist_data.index[-1]] + list(forecast_dates)
+            all_prices = [last_price] + list(future_prices)
+
+            fig.add_trace(go.Scatter(
+                x=all_dates,
+                y=all_prices,
+                mode='lines+markers',
+                name='AI Prediction',
+                line=dict(color='#6366f1', width=3, dash='dash'),
+                marker=dict(size=8, color='#6366f1')
+            ))
+
+            # Add shaded prediction area
+            fig.add_vrect(
+                x0=hist_data.index[-1],
+                x1=forecast_dates[-1],
+                fillcolor="rgba(99, 102, 241, 0.1)",
+                layer="below",
+                line_width=0
+            )
+
+            fig.update_layout(
+                template='plotly_white',
+                height=350,
+                margin=dict(l=0, r=0, t=30, b=0),
+                xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
+                yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', side='right', title='Price ($)'),
+                legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1),
+                hovermode='x unified'
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Prediction confidence note
+        st.markdown("""
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+            <strong>⚠️ Important:</strong> AI predictions are based on historical patterns and technical analysis.
+            Stock markets are inherently unpredictable. Use this as one of many tools in your research, not as financial advice.
+        </div>
+        """, unsafe_allow_html=True)
+
+    else:
+        st.warning(f"Unable to generate prediction for {ticker}. This may be due to insufficient historical data.")
 
     # Load historical data
     days = TIME_PERIODS[selected_period]["days"]
@@ -1270,9 +1516,11 @@ def main():
                 st.info(f"{icon} **{ind}**: {status}\n\n{desc}")
 
     with tab3:
-        st.markdown("### 🔮 AI-Powered Price Prediction")
+        st.markdown("### 🔮 AI-Powered Price Prediction - Deep Analysis")
 
-        if run_prediction:
+        st.info("📊 **Quick predictions are shown above!** This tab provides deeper analysis and model insights.")
+
+        if run_prediction and prediction:
             try:
                 import tensorflow as tf
                 tf.random.set_seed(42)
