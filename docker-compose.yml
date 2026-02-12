@@ -1,0 +1,128 @@
+# Stock Price Prediction - Docker Compose
+# 
+# Services:
+#   - api: FastAPI backend
+#   - streamlit: Streamlit frontend
+#   - redis: Caching layer
+#   - mlflow: Experiment tracking
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose up api redis   # Start API with cache only
+#   docker-compose logs -f api    # View API logs
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # FastAPI Backend
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-prediction-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app/src:/app
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - TF_CPP_MIN_LOG_LEVEL=2
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./results:/app/results
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - stock-prediction-network
+
+  # ==========================================================================
+  # Streamlit Frontend
+  # ==========================================================================
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-prediction-streamlit
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONPATH=/app/src:/app
+      - TF_CPP_MIN_LOG_LEVEL=2
+      - API_URL=http://api:8000
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - stock-prediction-network
+
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: stock-prediction-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - stock-prediction-network
+
+  # ==========================================================================
+  # MLflow Tracking Server
+  # ==========================================================================
+  mlflow:
+    image: python:3.11-slim
+    container_name: stock-prediction-mlflow
+    ports:
+      - "5000:5000"
+    command: >
+      bash -c "pip install mlflow && 
+               mlflow server 
+               --backend-store-uri sqlite:///mlflow.db 
+               --default-artifact-root /mlruns 
+               --host 0.0.0.0 
+               --port 5000"
+    volumes:
+      - mlflow-data:/mlruns
+      - mlflow-db:/mlflow.db
+    restart: unless-stopped
+    networks:
+      - stock-prediction-network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  stock-prediction-network:
+    driver: bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  redis-data:
+  mlflow-data:
+  mlflow-db:
