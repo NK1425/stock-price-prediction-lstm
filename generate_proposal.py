@@ -167,21 +167,10 @@ def build_title_page(styles):
                        fontSize=11, textColor=colors.white, alignment=TA_CENTER)),
         ],
         [
-            Paragraph("Naveed Khan", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
+            Paragraph("Venkata Surya Naga Sai Gayatri Puranam",
+                       ParagraphStyle("td", fontName="Helvetica", fontSize=11,
                        textColor=TEXT_BLACK, alignment=TA_CENTER)),
-            Paragraph("NK-1425", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
-                       textColor=TEXT_BLACK, alignment=TA_CENTER)),
-        ],
-        [
-            Paragraph("Sara Ahmed", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
-                       textColor=TEXT_BLACK, alignment=TA_CENTER)),
-            Paragraph("SA-2031", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
-                       textColor=TEXT_BLACK, alignment=TA_CENTER)),
-        ],
-        [
-            Paragraph("Ali Raza", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
-                       textColor=TEXT_BLACK, alignment=TA_CENTER)),
-            Paragraph("AR-1867", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
+            Paragraph("U00967515", ParagraphStyle("td", fontName="Helvetica", fontSize=11,
                        textColor=TEXT_BLACK, alignment=TA_CENTER)),
         ],
     ]
@@ -190,16 +179,11 @@ def build_title_page(styles):
     member_table.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
         ("BACKGROUND",    (0, 1), (-1, 1),  LIGHT_BLUE),
-        ("BACKGROUND",    (0, 2), (-1, 2),  colors.white),
-        ("BACKGROUND",    (0, 3), (-1, 3),  LIGHT_BLUE),
-        ("ROWBACKGROUNDS",(0, 0), (-1, -1), [LIGHT_BLUE, colors.white]),
-        ("BACKGROUND",    (0, 0), (-1, 0),  DARK_BLUE),
         ("GRID",          (0, 0), (-1, -1), 0.5, MED_GREY),
         ("TOPPADDING",    (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("ROUNDEDCORNERS", (0, 0), (-1, -1), [4, 4, 4, 4]),
     ]))
 
     # Centre the table
@@ -210,7 +194,7 @@ def build_title_page(styles):
     story.append(Spacer(1, 0.55 * inch))
     story.append(divider(color=MED_GREY, thickness=0.5))
 
-    story.append(Paragraph("Course: Machine Learning &amp; Deep Learning Applications", styles["meta"]))
+    story.append(Paragraph("Course: Neural Network", styles["meta"]))
     story.append(Paragraph("Submission Date: April 15, 2026", styles["meta_bold"]))
 
     story.append(Spacer(1, 0.4 * inch))
@@ -403,7 +387,7 @@ def build_proposal_page(styles):
 
     story.append(Paragraph(
         "<b>4.5 Training Protocol.</b> "
-        "Models are trained with the Adam optimiser (learning rate = 1 × 10⁻³), "
+        "Models are trained with the Adam optimiser (learning rate = 1e-3), "
         "MSE loss, and a suite of Keras callbacks: EarlyStopping (patience = 15), "
         "ReduceLROnPlateau (factor = 0.5, patience = 7), ModelCheckpoint, and "
         "TensorBoard. The 80 / 10 / 10 train-validation-test split respects temporal "
@@ -510,7 +494,7 @@ def generate():
         topMargin=1.0 * inch,
         bottomMargin=0.9 * inch,
         title="Final Project Proposal – Stock Price Prediction LSTM",
-        author="Naveed Khan, Sara Ahmed, Ali Raza",
+        author="Venkata Surya Naga Sai Gayatri Puranam",
         subject="Machine Learning Final Project Proposal",
     )
 
